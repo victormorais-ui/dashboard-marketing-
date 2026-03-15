@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard de Leads — Sou Energy</title>
+<title>Dashboard de Análises de Marketing — Sou Energy 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
@@ -446,7 +446,7 @@
 
   </div>
 
-  <footer><span id="lastUpdate"></span> &nbsp;·&nbsp; Sou Energy © 2026 &nbsp;·&nbsp; Dashboard de Leads / Tráfego Pago</footer>
+  <footer><span id="lastUpdate"></span> &nbsp;·&nbsp; Sou Energy © 2026 &nbsp;·&nbsp; Dashboard de Análises de Marketing</footer>
 </div><!-- end wrapper trafego -->
 </div><!-- end panel-trafego -->
 
@@ -455,28 +455,41 @@
 <div class="wrapper">
 
   <!-- SOCIAL HEADER -->
-  <header style="margin-bottom:32px;">
+  <header>
     <div class="logo-area">
-      <h1 style="font-family:Montserrat,sans-serif;font-size:20px;font-weight:800;">Redes Sociais <span style="color:var(--accent);">/ Métricas</span></h1>
-      <p style="font-size:13px;color:var(--muted);margin-top:2px;">Acompanhamento 2026</p>
+      <h1 style="font-family:Montserrat,sans-serif;font-size:20px;font-weight:800;">Redes Sociais <span style="color:var(--accent);">/ M&#233;tricas</span></h1>
+      <p style="font-size:13px;color:var(--muted);margin-top:2px;">Acompanhamento de m&#233;tricas 2026</p>
+    </div>
+    <div class="header-right" style="flex-wrap:wrap;gap:12px;">
+      <!-- Network tabs -->
+      <div class="month-filter">
+        <span class="filter-label">Canal:</span>
+        <div style="display:flex;gap:6px;">
+          <button class="net-tab active" onclick="switchNetwork('instagram',this)" data-net="instagram" style="padding:7px 14px;border-radius:8px;font-size:12px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-right:4px;vertical-align:middle;"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>Instagram
+          </button>
+          <button class="net-tab" onclick="switchNetwork('linkedin',this)" data-net="linkedin" style="padding:7px 14px;border-radius:8px;font-size:12px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-right:4px;vertical-align:middle;"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn
+          </button>
+          <button class="net-tab" onclick="switchNetwork('tiktok',this)" data-net="tiktok" style="padding:7px 14px;border-radius:8px;font-size:12px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-right:4px;vertical-align:middle;"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>TikTok
+          </button>
+        </div>
+      </div>
+      <!-- Status + Refresh -->
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="status-dot" id="social-statusDot"></div>
+        <span class="status-text" id="social-statusText">Carregando...</span>
+      </div>
+      <button class="refresh-btn" onclick="loadSocialData(_currentNetwork)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 4v6h-6M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+        Atualizar
+      </button>
     </div>
   </header>
-
-  <!-- NETWORK TABS -->
-  <div style="display:flex;gap:8px;margin-bottom:28px;" id="networkTabs">
-    <button class="net-tab active" onclick="switchNetwork('instagram',this)" data-net="instagram">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-      Instagram
-    </button>
-    <button class="net-tab" onclick="switchNetwork('linkedin',this)" data-net="linkedin">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-      LinkedIn
-    </button>
-    <button class="net-tab" onclick="switchNetwork('tiktok',this)" data-net="tiktok">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
-      TikTok
-    </button>
-  </div>
 
   <!-- LOADING -->
   <div id="social-loading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:40vh;gap:16px;">
@@ -1112,8 +1125,12 @@ async function loadSocialData(network) {
     renderSocialDashboard(data);
     document.getElementById('social-loading').style.display = 'none';
     document.getElementById('social-content').style.display = 'block';
+    document.getElementById('social-statusDot').style.cssText = 'background:#EF811A;box-shadow:0 0 8px #EF811A;';
+    document.getElementById('social-statusText').textContent = 'Dados atualizados';
   } catch (err) {
     document.getElementById('social-loading-msg').textContent = 'Erro ao carregar: ' + err.message;
+    document.getElementById('social-statusDot').style.cssText = 'background:var(--danger);box-shadow:none;';
+    document.getElementById('social-statusText').textContent = 'Erro ao carregar';
     console.error(err);
   }
 }
