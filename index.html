@@ -25,7 +25,59 @@
     --brand-orange-dark: #EA5D1D;
     --brand-orange: #EF811A;
     --brand-yellow: #F9CC29;
+    --chart-grid: rgba(255,255,255,0.04);
+    --chart-tick: #64748b;
   }
+
+  /* LIGHT MODE */
+  body.light {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface2: #eef1f6;
+    --border: rgba(0,0,0,0.08);
+    --text: #0f172a;
+    --muted: #64748b;
+    --chart-grid: rgba(0,0,0,0.05);
+    --chart-tick: #94a3b8;
+  }
+  body.light::before {
+    background-image:
+      linear-gradient(rgba(239,129,26,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(239,129,26,0.05) 1px, transparent 1px);
+  }
+  body.light::after {
+    background: radial-gradient(ellipse, rgba(239,129,26,0.06) 0%, transparent 70%);
+  }
+  body.light .sidebar {
+    background: #ffffff;
+    border-right: 1px solid rgba(0,0,0,0.08);
+  }
+  body.light .kpi-card { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  body.light .chart-card { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  body.light header { border-bottom-color: rgba(0,0,0,0.08); }
+  body.light .login-box { box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+  body.light #login-screen { background: #f4f6f9; }
+
+  /* THEME TOGGLE */
+  .theme-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .theme-btn:hover { border-color: var(--brand-orange); color: var(--brand-orange); }
+
+  /* Smooth theme transition */
+  body, body * {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, box-shadow 0.3s ease;
+  }
+  /* Except animations */
+  .spinner, .status-dot { transition: none !important; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Montserrat', sans-serif;
@@ -367,7 +419,7 @@
 
     <!-- Google Sign-In button -->
     <div id="g_id_onload"
-      data-client_id="815701065607-vphhg9aibdat190tjqt558pe9qel9cki.apps.googleusercontent.com"
+      data-client_id="SEU_CLIENT_ID_AQUI"
       data-callback="handleGoogleLogin"
       data-auto_prompt="false">
     </div>
@@ -487,6 +539,11 @@
         <div class="status-dot" id="statusDot"></div>
         <span class="status-text" id="statusText">Carregando...</span>
       </div>
+      <button class="theme-btn" onclick="toggleTheme()" id="themeBtn" title="Alternar modo claro/escuro">
+        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
       <button class="refresh-btn" onclick="loadData()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M23 4v6h-6M1 20v-6h6"/>
@@ -608,6 +665,11 @@
         <div class="status-dot" id="social-statusDot"></div>
         <span class="status-text" id="social-statusText">Carregando...</span>
       </div>
+      <button class="theme-btn" onclick="toggleTheme()" title="Alternar modo claro/escuro">
+        <svg id="themeIcon2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
       <button class="refresh-btn" onclick="loadSocialData(_currentNetwork)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M23 4v6h-6M1 20v-6h6"/>
@@ -1275,10 +1337,11 @@ function switchNetwork(network, btn) {
 // Lista de e-mails autorizados a acessar o dashboard
 // Adicione ou remova e-mails conforme necessário
 var ALLOWED_EMAILS = [
-  'victor.morais@souenergy.com.br',
-  'cyntia.fernandes@souenergy.com.br',
-  'aline.souza@souenergy.com.br',
-  'rebeca.monteiro@souenergy.com.br'
+  'victor@souenergy.com.br',
+  'usuario2@souenergy.com.br',
+  'usuario3@souenergy.com.br',
+  'usuario4@souenergy.com.br',
+  'usuario5@souenergy.com.br'
 ];
 
 function parseJwt(token) {
@@ -1326,6 +1389,65 @@ function doLogout() {
     google.accounts.id.disableAutoSelect();
   }
 }
+
+// =============================================
+// TEMA CLARO / ESCURO
+// =============================================
+var _isLight = false;
+
+var MOON_SVG = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+var SUN_SVG = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+
+function updateChartColors() {
+  var tick = _isLight ? '#94a3b8' : '#64748b';
+  var grid = _isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)';
+  Object.values(charts).forEach(function(c) {
+    if (!c || !c.options) return;
+    var scales = c.options.scales;
+    if (!scales) return;
+    if (scales.x) { scales.x.ticks.color = tick; if (scales.x.grid) scales.x.grid.color = grid; }
+    if (scales.y) { scales.y.ticks.color = tick; if (scales.y.grid) scales.y.grid.color = grid; }
+    c.update('none');
+  });
+  Object.values(socialCharts).forEach(function(c) {
+    if (!c || !c.options) return;
+    var scales = c.options.scales;
+    if (!scales) return;
+    if (scales.x) { scales.x.ticks.color = tick; if (scales.x.grid) scales.x.grid.color = grid; }
+    if (scales.y) { scales.y.ticks.color = tick; if (scales.y.grid) scales.y.grid.color = grid; }
+    c.update('none');
+  });
+}
+
+function toggleTheme() {
+  _isLight = !_isLight;
+  document.body.classList.toggle('light', _isLight);
+
+  var moonSvg = '<svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + MOON_SVG + '</svg>';
+  var sunSvg = '<svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + SUN_SVG + '</svg>';
+  var moonSvg2 = '<svg id="themeIcon2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + MOON_SVG + '</svg>';
+  var sunSvg2 = '<svg id="themeIcon2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + SUN_SVG + '</svg>';
+
+  var btn1 = document.getElementById('themeBtn');
+  var btn2 = document.querySelectorAll('.theme-btn')[1];
+
+  if (_isLight) {
+    if (btn1) btn1.innerHTML = sunSvg;
+    if (btn2) btn2.innerHTML = sunSvg2;
+  } else {
+    if (btn1) btn1.innerHTML = moonSvg;
+    if (btn2) btn2.innerHTML = moonSvg2;
+  }
+
+  updateChartColors();
+  localStorage.setItem('sou-theme', _isLight ? 'light' : 'dark');
+}
+
+function initTheme() {
+  var saved = localStorage.getItem('sou-theme');
+  if (saved === 'light') { _isLight = true; document.body.classList.add('light'); }
+}
+initTheme();
 
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
