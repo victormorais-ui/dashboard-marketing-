@@ -664,6 +664,12 @@
           </button>
         </div>
       </div>
+      <!-- Month filter -->
+      <div class="month-filter">
+        <span class="filter-label">Mês:</span>
+        <div id="social-monthButtons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        <button class="month-btn active" id="social-btn-all" onclick="filterSocialMonth('all', this)">Todos</button>
+      </div>
       <!-- Status + Refresh -->
       <div style="display:flex;align-items:center;gap:8px;">
         <div class="status-dot" id="social-statusDot"></div>
@@ -1142,6 +1148,8 @@ loadData();
 // =============================================
 // REDES SOCIAIS
 const SOCIAL_SHEET_ID = '1XcNYos02t8bty2MRnTU7uXGoWt8-B1pbo3Sr0cVL0z8';
+var _socialActiveMonth = 'all';
+var _socialAllData = null;
 const SOCIAL_GIDS = { instagram: '1576683792', linkedin: '930563654', tiktok: '1831736' };
 const MONTHS_PT = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MONTHS_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -1282,7 +1290,48 @@ function destroySocialChart(id) {
   if (socialCharts[id]) { socialCharts[id].destroy(); delete socialCharts[id]; }
 }
 
+function buildSocialMonthButtons(data) {
+  var MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var available = [];
+  data.meses.forEach(function(m, i) {
+    if (m && (m.seguidores !== null || m.ganho !== null)) {
+      available.push({ key: MONTHS[i], label: MONTHS[i] });
+    }
+  });
+  var container = document.getElementById('social-monthButtons');
+  container.innerHTML = '';
+  available.forEach(function(m) {
+    var btn = document.createElement('button');
+    btn.className = 'month-btn' + (_socialActiveMonth === m.key ? ' active' : '');
+    btn.textContent = m.key;
+    btn.onclick = function() { filterSocialMonth(m.key, btn); };
+    container.appendChild(btn);
+  });
+}
+
+function filterSocialMonth(month, btn) {
+  _socialActiveMonth = month;
+  document.querySelectorAll('#social-monthButtons .month-btn, #social-btn-all').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  if (_socialAllData) renderSocialDashboard(_socialAllData);
+}
+
+function getFilteredSocialData(data) {
+  if (_socialActiveMonth === 'all') return data;
+  var MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var idx = MONTHS.indexOf(_socialActiveMonth);
+  if (idx === -1) return data;
+
+  var filtered = JSON.parse(JSON.stringify(data));
+  filtered.meses = filtered.meses.map(function(m, i) {
+    if (i !== idx) return { mes: (m && m.mes) || MONTHS[i], seguidores: null, ganho: null, engajamento: null };
+    return m;
+  });
+  return filtered;
+}
+
 function renderSocialDashboard(data) {
+  var data = getFilteredSocialData(data);
   var mesesComDados = data.meses.filter(function(m) { return m && m.seguidores !== null; });
   var ultimo = mesesComDados.length > 0 ? mesesComDados[mesesComDados.length - 1] : {};
   var penultimo = mesesComDados.length > 1 ? mesesComDados[mesesComDados.length - 2] : {};
@@ -1425,6 +1474,12 @@ async function loadSocialData(network) {
   try {
     var csv = await fetchSocialCSV(SOCIAL_GIDS[network]);
     var data = parseSocialSheet(csv);
+    _socialAllData = data;
+    _socialActiveMonth = 'all';
+    document.querySelectorAll('#social-monthButtons .month-btn').forEach(function(b) { b.classList.remove('active'); });
+    var allBtn = document.getElementById('social-btn-all');
+    if (allBtn) allBtn.classList.add('active');
+    buildSocialMonthButtons(data);
     renderSocialDashboard(data);
     document.getElementById('social-loading').style.display = 'none';
     document.getElementById('social-content').style.display = 'block';
