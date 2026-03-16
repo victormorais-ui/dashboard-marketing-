@@ -308,11 +308,16 @@
   .info-icon:hover { border-color: var(--brand-orange); color: var(--brand-orange); }
   .info-icon .tooltip {
     display: none; position: absolute; bottom: calc(100% + 8px); right: 0;
-    background: #1e293b; border: 1px solid var(--border);
+    background: #1e293b; border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px; padding: 8px 12px; width: 200px;
-    font-size: 11px; color: var(--text); font-weight: 400;
+    font-size: 11px; color: #f1f5f9; font-weight: 400;
     text-transform: none; letter-spacing: 0; line-height: 1.5;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 10; pointer-events: none;
+  }
+  body.light .info-icon .tooltip {
+    background: #1e293b;
+    color: #f1f5f9;
+    border-color: rgba(255,255,255,0.1);
   }
   .info-icon .tooltip::after {
     content: ''; position: absolute; top: 100%; right: 4px;
@@ -836,8 +841,8 @@
     <!-- Row 3: Custo/inscrito + Região + Evolução -->
     <div class="charts-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:0;">
       <div class="chart-card">
-        <div class="chart-title">Custo por Inscrito</div>
-        <div class="chart-subtitle">R$/inscrito por evento</div>
+        <div class="chart-title">Custo por Presente</div>
+        <div class="chart-subtitle">R$/presente por evento</div>
         <div id="ev-custo-list" style="margin-top:8px;"></div>
       </div>
       <div class="chart-card">
@@ -847,9 +852,10 @@
         <div id="ev-regiao-legend" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted);"></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Evolução de Inscritos</div>
-        <div class="chart-subtitle">Acumulado por mês</div>
-        <div class="chart-container" style="height:160px;"><canvas id="ev-chart-evolucao"></canvas></div>
+        <div class="chart-title">Cidades — 2025 vs 2026</div>
+        <div class="chart-subtitle">Inscritos por cidade em anos diferentes</div>
+        <div class="chart-container" style="height:160px;"><canvas id="ev-chart-comparativo"></canvas></div>
+        <div id="ev-comparativo-legend" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted);"></div>
       </div>
     </div>
 
@@ -1616,7 +1622,8 @@ function renderEventos() {
   document.getElementById('ev-presenca').textContent = taxaPresenca + '%';
   document.getElementById('ev-noshow').textContent = 'No-show: ' + noshow + '%';
   document.getElementById('ev-custo').textContent = evFormatCurrency(totalCusto);
-  document.getElementById('ev-custo-inscrito').textContent = 'Custo/inscrito: R$ ' + parseFloat(custoPorInscrito).toFixed(2);
+  var custoPorPresente = totalPresentes > 0 ? (totalCusto / totalPresentes).toFixed(2) : 0;
+  document.getElementById('ev-custo-inscrito').textContent = 'Custo/presente: R$ ' + parseFloat(custoPorPresente).toFixed(2);
 
   // Build per-event data
   var evLabels = [], evInscritos = [], evPresentes = [], evCustos = [], evNoshow = [];
@@ -1718,7 +1725,7 @@ function renderEventos() {
     return evInscritos[i] > 0 ? Math.round(evCustos[i] / evInscritos[i]) : 0;
   })) || 1;
   document.getElementById('ev-custo-list').innerHTML = evLabels.map(function(label, i) {
-    var ci = evInscritos[i] > 0 ? Math.round(evCustos[i] / evInscritos[i]) : 0;
+    var ci = evPresentes[i] > 0 ? Math.round(evCustos[i] / evPresentes[i]) : 0;
     var pct = Math.round((ci / maxCustIns) * 100);
     return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">'
       + '<span style="font-size:12px;flex:1;color:var(--text);">' + label + '</span>'
@@ -1747,37 +1754,39 @@ function renderEventos() {
     return '<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:' + regColors[i] + ';flex-shrink:0;"></span>' + l + ' ' + regVals[i] + '</span>';
   }).join('');
 
-  // Chart: Evolução acumulada
-  var MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  var byMonth = {};
-  inscritos.forEach(function(r) {
-    var ev = _evData.eventos.find(function(e) { return e['ID_Evento'] === r['ID_Evento']; });
-    if (!ev) return;
+  // Chart: Comparativo cidades 2025 vs 2026
+  var cidadeAno = {};
+  eventos.forEach(function(ev) {
+    var cidade = ev['Cidade'] || '';
     var dateStr = ev['Data_Evento_Inicio'] || '';
     var parts = dateStr.split('/');
-    if (parts.length === 3) {
-      var key = MONTHS[parseInt(parts[1]) - 1] + '/' + parts[2].slice(-2);
-      byMonth[key] = (byMonth[key] || 0) + 1;
-    }
+    var ano = parts.length === 3 ? parts[2] : '';
+    if (!cidade || !ano) return;
+    if (!cidadeAno[cidade]) cidadeAno[cidade] = {};
+    var ins = inscritos.filter(function(r) { return r['ID_Evento'] === ev['ID_Evento']; });
+    cidadeAno[cidade][ano] = (cidadeAno[cidade][ano] || 0) + ins.length;
   });
-  var sortedMonths = Object.keys(byMonth).sort(function(a, b) {
-    var toD = function(s) { var p = s.split('/'); return new Date('20' + p[1] + '-' + String(MONTHS.indexOf(p[0]) + 1).padStart(2,'0') + '-01'); };
-    return toD(a) - toD(b);
-  });
-  var cumulative = 0;
-  var cumData = sortedMonths.map(function(m) { cumulative += byMonth[m]; return cumulative; });
 
-  evDestroyChart('evolucao');
-  var ctxEv = document.getElementById('ev-chart-evolucao').getContext('2d');
-  var gradEv = ctxEv.createLinearGradient(0, 0, 0, 160);
-  gradEv.addColorStop(0, 'rgba(249,204,41,0.3)');
-  gradEv.addColorStop(1, 'rgba(249,204,41,0)');
-  _evCharts['evolucao'] = new Chart(ctxEv, {
-    type: 'line',
-    data: {
-      labels: sortedMonths,
-      datasets: [{ label: 'Inscritos', data: cumData, borderColor: '#F9CC29', backgroundColor: gradEv, borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#F9CC29', fill: true, tension: 0.4 }]
-    },
+  // Only show cities that appear in more than one year OR all cities if none repeat
+  var cidadesComparativo = Object.keys(cidadeAno);
+  var anos = [];
+  cidadesComparativo.forEach(function(c) { Object.keys(cidadeAno[c]).forEach(function(a) { if (anos.indexOf(a) === -1) anos.push(a); }); });
+  anos.sort();
+
+  var compColors = ['#EF811A', '#F9CC29', '#EA5D1D', '#E5351C'];
+  var compDatasets = anos.map(function(ano, ai) {
+    return {
+      label: ano,
+      data: cidadesComparativo.map(function(c) { return cidadeAno[c][ano] || 0; }),
+      backgroundColor: compColors[ai % compColors.length],
+      borderRadius: 5
+    };
+  });
+
+  evDestroyChart('comparativo');
+  _evCharts['comparativo'] = new Chart(document.getElementById('ev-chart-comparativo'), {
+    type: 'bar',
+    data: { labels: cidadesComparativo, datasets: compDatasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
@@ -1787,6 +1796,9 @@ function renderEventos() {
       }
     }
   });
+  document.getElementById('ev-comparativo-legend').innerHTML = anos.map(function(ano, ai) {
+    return '<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:' + compColors[ai % compColors.length] + ';flex-shrink:0;"></span>' + ano + '</span>';
+  }).join('');
 }
 
 async function loadEventosData() {
