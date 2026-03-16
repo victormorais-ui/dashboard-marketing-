@@ -618,11 +618,16 @@
       </div>
     </div>
 
-    <div class="charts-grid">
+    <div class="charts-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:20px;">
       <div class="chart-card">
         <div class="chart-title">Top Estados</div>
-        <div class="chart-subtitle">Leads convertidos por UF</div>
+        <div class="chart-subtitle">Leads válidos por UF</div>
         <div class="states-list" id="statesList"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Leads por Estado</div>
+        <div class="chart-subtitle">Distribuição geográfica — tráfego pago</div>
+        <div class="chart-container" style="height:260px;"><canvas id="chartEstados"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-title">Motivos de Invalidação</div>
@@ -630,6 +635,12 @@
         <div class="chart-container" style="height:180px;"><canvas id="chartMotivos"></canvas></div>
         <div id="motivosList" style="margin-top:12px;"></div>
       </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:0;">
+      <div class="chart-title">Origem dos Leads Inválidos por Motivo</div>
+      <div class="chart-subtitle">Google vs Meta — distribuição dos principais motivos de descarte</div>
+      <div class="chart-container" style="height:220px;"><canvas id="chartOrigemMotivo"></canvas></div>
     </div>
 
   </div>
@@ -715,7 +726,7 @@
         <div class="kpi-value" id="s-engajamento" style="color:var(--accent2);">—</div>
         <div class="kpi-sub" id="s-eng-prev">Mês anterior: —</div>
       </div>
-      <div class="kpi-card" style="background:var(--surface);border:1px solid var(--border);">
+      <div class="kpi-card orange">
         <div class="kpi-header"><div class="kpi-label">Meta Anual</div><div class="info-icon">!<span class="tooltip">Progresso em relação à meta total de seguidores para 2026.</span></div></div>
         <div class="kpi-value" id="s-prog-pct" style="color:var(--accent);">—</div>
         <div class="kpi-sub" id="s-prog-detail">— de —</div>
@@ -844,8 +855,8 @@
       </div>
     </div>
 
-    <!-- Row 3: Custo/inscrito + Região + Evolução -->
-    <div class="charts-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:0;">
+    <!-- Row 3: Custo/inscrito + Região + Comparativo -->
+    <div class="charts-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:20px;">
       <div class="chart-card">
         <div class="chart-title">Custo por Presente</div>
         <div class="chart-subtitle">R$/presente por evento</div>
@@ -862,6 +873,20 @@
         <div class="chart-subtitle">Inscritos por cidade em anos diferentes</div>
         <div class="chart-container" style="height:160px;"><canvas id="ev-chart-comparativo"></canvas></div>
         <div id="ev-comparativo-legend" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted);"></div>
+      </div>
+    </div>
+
+    <!-- Row 4: Performance por consultor -->
+    <div class="charts-grid" style="grid-template-columns:1fr 1fr;margin-bottom:0;">
+      <div class="chart-card">
+        <div class="chart-title">Performance por Consultor</div>
+        <div class="chart-subtitle">Inscritos e presentes por consultor</div>
+        <div class="chart-container" style="height:280px;"><canvas id="ev-chart-consultor"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Taxa de Presença por Consultor</div>
+        <div class="chart-subtitle">% de presença dos inscritos de cada consultor</div>
+        <div id="ev-consultor-list" style="margin-top:8px;"></div>
       </div>
     </div>
 
@@ -1037,6 +1062,71 @@ function buildMotivos(rows) {
   ).join('');
 }
 
+function buildChartEstados(rows) {
+  const paid = rows.filter(isPaidTraffic);
+  const key = findKey(rows[0], 'estado', 'uf');
+  const map = countBy(paid, key);
+  const sorted = sortedEntries(map, 12);
+  const labels = sorted.map(([s]) => s);
+  const values = sorted.map(([, v]) => v);
+  const colors = values.map((v, i) => {
+    const max = values[0] || 1;
+    const alpha = 0.4 + (v / max) * 0.55;
+    return 'rgba(239,129,26,' + alpha.toFixed(2) + ')';
+  });
+  destroyChart('estados');
+  charts['estados'] = new Chart(document.getElementById('chartEstados'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Leads', data: values, backgroundColor: colors, borderColor: '#EF811A', borderWidth: 1, borderRadius: 5 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function buildChartOrigemMotivo(invalidos) {
+  const motivoKey = findKey(invalidos[0], 'motivo', 'coment');
+  const origemKey = findKey(invalidos[0], 'origem');
+  const top5 = sortedEntries(countBy(invalidos, motivoKey), 5).map(([k]) => k);
+  const google = invalidos.filter(r => (r[origemKey] || '').toLowerCase().includes('google'));
+  const meta = invalidos.filter(r => {
+    const o = (r[origemKey] || '').toLowerCase();
+    return o.includes('meta') || o.includes('facebook') || o.includes('instagram');
+  });
+  const countForGroup = (group, motivo) => group.filter(r => (r[motivoKey] || '') === motivo).length;
+  const labels = top5.map(m => m.length > 30 ? m.substring(0, 30) + '…' : m);
+  destroyChart('origemMotivo');
+  charts['origemMotivo'] = new Chart(document.getElementById('chartOrigemMotivo'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Google', data: top5.map(m => countForGroup(google, m)), backgroundColor: 'rgba(239,129,26,0.8)', borderRadius: 5 },
+        { label: 'Meta', data: top5.map(m => countForGroup(meta, m)), backgroundColor: 'rgba(249,204,41,0.8)', borderRadius: 5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12, padding: 12 } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 }, maxRotation: 20 }, grid: { display: false } },
+        y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
 function getMonthKey(row) {
   const key = findKey(row, 'convers', 'data');
   const raw = (row[key] || '').split(' ')[0];
@@ -1104,7 +1194,11 @@ function renderDashboard(convertidos, invalidos) {
   buildChartOrigem(filtered);
   buildChartTempo(filtered);
   buildStates(filtered);
-  if (invalidosPaid.length > 0) { buildMotivos(filteredInv); }
+  buildChartEstados(filtered);
+  if (invalidosPaid.length > 0) {
+    buildMotivos(filteredInv);
+    buildChartOrigemMotivo(filteredInv);
+  }
 }
 
 async function loadData() {
@@ -1853,6 +1947,66 @@ function renderEventos() {
   });
   document.getElementById('ev-comparativo-legend').innerHTML = anos.map(function(ano, ai) {
     return '<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:' + compColors[ai % compColors.length] + ';flex-shrink:0;"></span>' + ano + '</span>';
+  }).join('');
+
+  // Chart: Performance por consultor
+  var consultorMap = {};
+  inscritos.forEach(function(r) {
+    var consul = (r['Consultor'] || 'Não informado').trim();
+    if (!consultorMap[consul]) consultorMap[consul] = { inscritos: 0, presentes: 0 };
+    consultorMap[consul].inscritos++;
+    if ((r['Checkin_Flag'] || '').toUpperCase() === 'SIM') consultorMap[consul].presentes++;
+  });
+
+  // Sort by inscritos, top 10
+  var topConsultores = Object.entries(consultorMap)
+    .filter(function(e) { return e[0] !== 'NÃO TENHO' && e[0] !== 'NÃO SEI/NÃO ME RECOR' && e[0].length > 2; })
+    .sort(function(a, b) { return b[1].inscritos - a[1].inscritos; })
+    .slice(0, 10);
+
+  var cLabels = topConsultores.map(function(e) {
+    var name = e[0];
+    return name.split(' ').slice(0, 2).join(' ');
+  });
+  var cInscritos = topConsultores.map(function(e) { return e[1].inscritos; });
+  var cPresentes = topConsultores.map(function(e) { return e[1].presentes; });
+
+  evDestroyChart('consultor');
+  _evCharts['consultor'] = new Chart(document.getElementById('ev-chart-consultor'), {
+    type: 'bar',
+    data: {
+      labels: cLabels,
+      datasets: [
+        { label: 'Inscritos', data: cInscritos, backgroundColor: 'rgba(239,129,26,0.7)', borderRadius: 5 },
+        { label: 'Presentes', data: cPresentes, backgroundColor: 'rgba(234,93,29,0.9)', borderRadius: 5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top', labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12, padding: 12 } } },
+      scales: {
+        x: { ticks: { color: tick, font: { size: 10 }, maxRotation: 30 }, grid: { display: false } },
+        y: { ticks: { color: tick, font: { size: 10 } }, grid: { color: grid }, beginAtZero: true }
+      }
+    }
+  });
+
+  // Taxa de presença por consultor list
+  var maxTaxa = 100;
+  document.getElementById('ev-consultor-list').innerHTML = topConsultores.map(function(e) {
+    var name = e[0].split(' ').slice(0, 2).join(' ');
+    var taxa = e[1].inscritos > 0 ? ((e[1].presentes / e[1].inscritos) * 100).toFixed(1) : 0;
+    var taxaNum = parseFloat(taxa);
+    var color = taxaNum >= 70 ? '#10b981' : taxaNum >= 50 ? '#EF811A' : '#E5351C';
+    var bgColor = taxaNum >= 70 ? 'rgba(16,185,129,0.12)' : taxaNum >= 50 ? 'rgba(239,129,26,0.12)' : 'rgba(229,53,28,0.12)';
+    var pct = Math.round((taxaNum / 100) * 100);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">'
+      + '<span style="font-size:12px;flex:1;color:var(--text);">' + name + '</span>'
+      + '<span style="font-size:11px;color:var(--muted);">' + e[1].presentes + '/' + e[1].inscritos + '</span>'
+      + '<div style="width:70px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;">'
+      + '<div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:3px;"></div></div>'
+      + '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:' + bgColor + ';color:' + color + ';min-width:42px;text-align:center;">' + taxa + '%</span>'
+      + '</div>';
   }).join('');
 }
 
