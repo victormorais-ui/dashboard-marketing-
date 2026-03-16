@@ -468,7 +468,7 @@
       <span class="nav-tooltip">Redes Sociais</span>
     </a>
 
-    <a class="nav-item soon" href="#">
+    <a class="nav-item" onclick="showPanel('eventos')" href="#">
       <div class="nav-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -478,7 +478,6 @@
         </svg>
       </div>
       <span class="nav-label">Eventos</span>
-      <span class="nav-badge">Em breve</span>
       <span class="nav-tooltip">Eventos</span>
     </a>
 
@@ -741,10 +740,119 @@
 <!-- PANEL: EVENTOS -->
 <div class="panel" id="panel-eventos">
 <div class="wrapper">
-  <div class="coming-soon">
-    <div class="coming-soon-icon">🗓️</div>
-    <h2>Eventos</h2>
-    <p>Painel em construção. Em breve você acompanhará os resultados dos eventos da Sou Energy.</p>
+
+  <header>
+    <div class="logo-area">
+      <h1 style="font-family:Montserrat,sans-serif;font-size:20px;font-weight:800;">Eventos <span style="color:var(--accent);">/ Análises</span></h1>
+      <p style="font-size:13px;color:var(--muted);margin-top:2px;">Solarizando na Estrada 2025/2026</p>
+    </div>
+    <div class="header-right" style="flex-wrap:wrap;gap:12px;">
+      <div class="month-filter">
+        <span class="filter-label">Evento:</span>
+        <select id="ev-filter-evento" class="month-btn" style="padding:7px 12px;cursor:pointer;" onchange="renderEventos()">
+          <option value="todos">Todos</option>
+        </select>
+      </div>
+      <div class="month-filter">
+        <span class="filter-label">Região:</span>
+        <select id="ev-filter-regiao" class="month-btn" style="padding:7px 12px;cursor:pointer;" onchange="renderEventos()">
+          <option value="todas">Todas</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="status-dot" id="ev-statusDot"></div>
+        <span class="status-text" id="ev-statusText">Carregando...</span>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()" title="Alternar modo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+      <button class="refresh-btn" onclick="loadEventosData()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Atualizar
+      </button>
+    </div>
+  </header>
+
+  <div id="ev-loading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:40vh;gap:16px;">
+    <div class="spinner"></div>
+    <p style="color:var(--muted);font-size:14px;" id="ev-loading-msg">Carregando dados...</p>
+  </div>
+
+  <div id="ev-content" style="display:none;">
+
+    <!-- KPIs -->
+    <div class="kpi-grid" style="margin-bottom:28px;">
+      <div class="kpi-card blue">
+        <div class="kpi-header"><div class="kpi-label">Total de Eventos</div><div class="info-icon">!<span class="tooltip">Número total de eventos no período selecionado.</span></div></div>
+        <div class="kpi-value" id="ev-total" style="color:var(--accent2);">—</div>
+        <div class="kpi-sub" id="ev-tipo">—</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-header"><div class="kpi-label">Total de Inscritos</div><div class="info-icon">!<span class="tooltip">Soma de todos os inscritos nos eventos selecionados.</span></div></div>
+        <div class="kpi-value" id="ev-inscritos" style="color:var(--accent);">—</div>
+        <div class="kpi-sub" id="ev-media-inscritos">Média por evento: —</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-header"><div class="kpi-label">Taxa de Presença</div><div class="info-icon">!<span class="tooltip">% de inscritos que realizaram checkin no evento.</span></div></div>
+        <div class="kpi-value" id="ev-presenca" style="color:var(--accent3);">—</div>
+        <div class="kpi-sub" id="ev-noshow">No-show: —</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-header"><div class="kpi-label">Custo Total</div><div class="info-icon">!<span class="tooltip">Soma de todos os custos dos eventos selecionados.</span></div></div>
+        <div class="kpi-value" id="ev-custo" style="color:var(--danger);">—</div>
+        <div class="kpi-sub" id="ev-custo-inscrito">Custo/inscrito: —</div>
+      </div>
+    </div>
+
+    <!-- Row 1: Barras inscritos vs presentes + No-show ranking -->
+    <div class="charts-grid" style="grid-template-columns:1fr 1fr;margin-bottom:20px;">
+      <div class="chart-card">
+        <div class="chart-title">Inscritos vs Presentes</div>
+        <div class="chart-subtitle">Comparativo de checkin por evento</div>
+        <div class="chart-container" style="height:240px;"><canvas id="ev-chart-inscrito"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">No-show por Evento</div>
+        <div class="chart-subtitle">% de inscritos que não compareceram</div>
+        <div id="ev-noshow-list" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- Row 2: Custos -->
+    <div class="charts-grid" style="grid-template-columns:1fr 1fr;margin-bottom:20px;">
+      <div class="chart-card">
+        <div class="chart-title">Custo Total por Evento</div>
+        <div class="chart-subtitle">R$ por cidade</div>
+        <div class="chart-container" style="height:220px;"><canvas id="ev-chart-custo"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Custo por Categoria</div>
+        <div class="chart-subtitle">Distribuição entre Áudio visual, Buffet e Local</div>
+        <div class="chart-container" style="height:180px;"><canvas id="ev-chart-categoria"></canvas></div>
+        <div id="ev-categoria-legend" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted);"></div>
+      </div>
+    </div>
+
+    <!-- Row 3: Custo/inscrito + Região + Evolução -->
+    <div class="charts-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:0;">
+      <div class="chart-card">
+        <div class="chart-title">Custo por Inscrito</div>
+        <div class="chart-subtitle">R$/inscrito por evento</div>
+        <div id="ev-custo-list" style="margin-top:8px;"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Eventos por Região</div>
+        <div class="chart-subtitle">Distribuição geográfica</div>
+        <div class="chart-container" style="height:160px;"><canvas id="ev-chart-regiao"></canvas></div>
+        <div id="ev-regiao-legend" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted);"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Evolução de Inscritos</div>
+        <div class="chart-subtitle">Acumulado por mês</div>
+        <div class="chart-container" style="height:160px;"><canvas id="ev-chart-evolucao"></canvas></div>
+      </div>
+    </div>
+
   </div>
 </div>
 </div>
@@ -1418,6 +1526,322 @@ function updateChartColors() {
   });
 }
 
+// =============================================
+// EVENTOS
+// =============================================
+const EV_SHEET_ID = '17Lf4xrRXb7BJrBmNBHpdxazT849KfcjxycW0CIT6Tvk';
+const EV_GIDS = {
+  eventos:   '2480586',
+  inscritos: '1699299530',
+  custos:    '322148482',
+  base:      '1856130750'
+};
+var _evData = { eventos: [], inscritos: [], custos: [] };
+var _evCharts = {};
+
+function evCsvUrl(gid) {
+  return 'https://docs.google.com/spreadsheets/d/' + EV_SHEET_ID + '/export?format=csv&gid=' + gid;
+}
+
+function evParseCSV(text) {
+  var lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  var headers = evParseLine(lines[0]);
+  return lines.slice(1).map(function(l) {
+    var vals = evParseLine(l);
+    var obj = {};
+    headers.forEach(function(h, i) { obj[h.trim()] = (vals[i] || '').trim(); });
+    return obj;
+  });
+}
+
+function evParseLine(line) {
+  var result = []; var cur = ''; var inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    if (line[i] === '"') { inQ = !inQ; continue; }
+    if (line[i] === ',' && !inQ) { result.push(cur); cur = ''; continue; }
+    cur += line[i];
+  }
+  result.push(cur);
+  return result;
+}
+
+function evClean(s) {
+  return (s || '').replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
+}
+
+function evDestroyChart(id) {
+  if (_evCharts[id]) { _evCharts[id].destroy(); delete _evCharts[id]; }
+}
+
+function evFormatCurrency(val) {
+  if (val >= 1000) return 'R$ ' + (val / 1000).toFixed(1) + 'k';
+  return 'R$ ' + val.toFixed(0);
+}
+
+function renderEventos() {
+  var filterEvento = document.getElementById('ev-filter-evento').value;
+  var filterRegiao = document.getElementById('ev-filter-regiao').value;
+
+  var eventos = _evData.eventos.filter(function(e) {
+    if (filterEvento !== 'todos' && e['ID_Evento'] !== filterEvento) return false;
+    if (filterRegiao !== 'todas' && e['Região'] !== filterRegiao) return false;
+    return true;
+  });
+
+  var ids = eventos.map(function(e) { return e['ID_Evento']; });
+
+  var inscritos = _evData.inscritos.filter(function(r) { return ids.indexOf(r['ID_Evento']) !== -1; });
+  var custos = _evData.custos.filter(function(r) { return ids.indexOf(r['ID_Evento']) !== -1; });
+
+  // KPIs
+  var totalInscritos = inscritos.length;
+  var totalPresentes = inscritos.filter(function(r) {
+    return (r['Checkin_Flag'] || '').toUpperCase() === 'SIM';
+  }).length;
+  var taxaPresenca = totalInscritos > 0 ? ((totalPresentes / totalInscritos) * 100).toFixed(1) : 0;
+  var noshow = totalInscritos > 0 ? (100 - parseFloat(taxaPresenca)).toFixed(1) : 0;
+
+  var totalCusto = custos.reduce(function(acc, r) {
+    return acc + (parseFloat(evClean(r['Valor Total'])) || 0);
+  }, 0);
+
+  var custoPorInscrito = totalInscritos > 0 ? (totalCusto / totalInscritos).toFixed(2) : 0;
+  var mediaInscritos = eventos.length > 0 ? Math.round(totalInscritos / eventos.length) : 0;
+
+  document.getElementById('ev-total').textContent = eventos.length;
+  document.getElementById('ev-tipo').textContent = eventos.length > 0 ? (eventos[0]['Tipo_Evento'] || '—') : '—';
+  document.getElementById('ev-inscritos').textContent = totalInscritos.toLocaleString('pt-BR');
+  document.getElementById('ev-media-inscritos').textContent = 'Média por evento: ' + mediaInscritos;
+  document.getElementById('ev-presenca').textContent = taxaPresenca + '%';
+  document.getElementById('ev-noshow').textContent = 'No-show: ' + noshow + '%';
+  document.getElementById('ev-custo').textContent = evFormatCurrency(totalCusto);
+  document.getElementById('ev-custo-inscrito').textContent = 'Custo/inscrito: R$ ' + parseFloat(custoPorInscrito).toFixed(2);
+
+  // Build per-event data
+  var evLabels = [], evInscritos = [], evPresentes = [], evCustos = [], evNoshow = [];
+  eventos.forEach(function(ev) {
+    var id = ev['ID_Evento'];
+    var cidade = ev['Cidade'] || id;
+    var ins = inscritos.filter(function(r) { return r['ID_Evento'] === id; });
+    var pres = ins.filter(function(r) { return (r['Checkin_Flag'] || '').toUpperCase() === 'SIM'; });
+    var cust = custos.filter(function(r) { return r['ID_Evento'] === id; })
+      .reduce(function(a, r) { return a + (parseFloat(evClean(r['Valor Total'])) || 0); }, 0);
+    var ns = ins.length > 0 ? ((1 - pres.length / ins.length) * 100).toFixed(1) : 0;
+    evLabels.push(cidade);
+    evInscritos.push(ins.length);
+    evPresentes.push(pres.length);
+    evCustos.push(Math.round(cust));
+    evNoshow.push(parseFloat(ns));
+  });
+
+  var tick = _isLight ? '#94a3b8' : '#64748b';
+  var grid = _isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.04)';
+
+  // Chart: Inscritos vs Presentes
+  evDestroyChart('inscrito');
+  _evCharts['inscrito'] = new Chart(document.getElementById('ev-chart-inscrito'), {
+    type: 'bar',
+    data: {
+      labels: evLabels,
+      datasets: [
+        { label: 'Inscritos', data: evInscritos, backgroundColor: '#EF811A', borderRadius: 5 },
+        { label: 'Presentes', data: evPresentes, backgroundColor: '#EA5D1D', borderRadius: 5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: tick, font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: tick, font: { size: 10 } }, grid: { color: grid }, beginAtZero: true }
+      }
+    }
+  });
+
+  // No-show list
+  var maxNS = Math.max.apply(null, evNoshow) || 1;
+  document.getElementById('ev-noshow-list').innerHTML = evLabels.map(function(label, i) {
+    var ns = evNoshow[i];
+    var color = ns >= 40 ? '#E5351C' : ns >= 33 ? '#EA5D1D' : '#10b981';
+    var bgColor = ns >= 40 ? 'rgba(229,53,28,0.12)' : ns >= 33 ? 'rgba(234,93,29,0.12)' : 'rgba(16,185,129,0.12)';
+    var pct = Math.round((ns / 50) * 100);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">'
+      + '<span style="font-size:12px;flex:1;color:var(--text);">' + label + '</span>'
+      + '<div style="width:80px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;">'
+      + '<div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:3px;"></div></div>'
+      + '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:' + bgColor + ';color:' + color + ';">' + ns + '%</span>'
+      + '</div>';
+  }).join('');
+
+  // Chart: Custo por evento
+  evDestroyChart('custo');
+  _evCharts['custo'] = new Chart(document.getElementById('ev-chart-custo'), {
+    type: 'bar',
+    data: {
+      labels: evLabels,
+      datasets: [{ label: 'Custo', data: evCustos, backgroundColor: '#F9CC29', borderRadius: 5 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: tick, font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: tick, font: { size: 10 }, callback: function(v) { return 'R$' + Math.round(v/1000) + 'k'; } }, grid: { color: grid }, beginAtZero: true }
+      }
+    }
+  });
+
+  // Chart: Custo por categoria
+  var catMap = {};
+  custos.forEach(function(r) {
+    var cat = r['Categoria_Custo'] || 'Outros';
+    catMap[cat] = (catMap[cat] || 0) + (parseFloat(evClean(r['Valor Total'])) || 0);
+  });
+  var catLabels = Object.keys(catMap);
+  var catVals = catLabels.map(function(k) { return Math.round(catMap[k]); });
+  var catColors = ['#EF811A', '#F9CC29', '#EA5D1D', '#E5351C', '#64748b'];
+  evDestroyChart('categoria');
+  _evCharts['categoria'] = new Chart(document.getElementById('ev-chart-categoria'), {
+    type: 'doughnut',
+    data: { labels: catLabels, datasets: [{ data: catVals, backgroundColor: catColors.slice(0, catLabels.length), borderWidth: 0, hoverOffset: 5 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+  });
+  var totalCat = catVals.reduce(function(a, b) { return a + b; }, 0);
+  document.getElementById('ev-categoria-legend').innerHTML = catLabels.map(function(l, i) {
+    var pct = totalCat > 0 ? Math.round((catVals[i] / totalCat) * 100) : 0;
+    return '<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:' + catColors[i] + ';flex-shrink:0;"></span>' + l + ' ' + pct + '%</span>';
+  }).join('');
+
+  // Custo por inscrito list
+  var maxCustIns = Math.max.apply(null, evLabels.map(function(_, i) {
+    return evInscritos[i] > 0 ? Math.round(evCustos[i] / evInscritos[i]) : 0;
+  })) || 1;
+  document.getElementById('ev-custo-list').innerHTML = evLabels.map(function(label, i) {
+    var ci = evInscritos[i] > 0 ? Math.round(evCustos[i] / evInscritos[i]) : 0;
+    var pct = Math.round((ci / maxCustIns) * 100);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">'
+      + '<span style="font-size:12px;flex:1;color:var(--text);">' + label + '</span>'
+      + '<div style="width:60px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;">'
+      + '<div style="width:' + pct + '%;height:100%;background:#EF811A;border-radius:3px;"></div></div>'
+      + '<span style="font-size:12px;font-weight:700;color:var(--accent);width:52px;text-align:right;">R$ ' + ci + '</span>'
+      + '</div>';
+  }).join('');
+
+  // Chart: Eventos por região
+  var regMap = {};
+  eventos.forEach(function(ev) {
+    var reg = ev['Região'] || 'N/A';
+    regMap[reg] = (regMap[reg] || 0) + 1;
+  });
+  var regLabels = Object.keys(regMap);
+  var regVals = regLabels.map(function(k) { return regMap[k]; });
+  var regColors = ['#EF811A', '#F9CC29', '#EA5D1D', '#E5351C'];
+  evDestroyChart('regiao');
+  _evCharts['regiao'] = new Chart(document.getElementById('ev-chart-regiao'), {
+    type: 'doughnut',
+    data: { labels: regLabels, datasets: [{ data: regVals, backgroundColor: regColors.slice(0, regLabels.length), borderWidth: 0, hoverOffset: 5 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+  });
+  document.getElementById('ev-regiao-legend').innerHTML = regLabels.map(function(l, i) {
+    return '<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:' + regColors[i] + ';flex-shrink:0;"></span>' + l + ' ' + regVals[i] + '</span>';
+  }).join('');
+
+  // Chart: Evolução acumulada
+  var MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var byMonth = {};
+  inscritos.forEach(function(r) {
+    var ev = _evData.eventos.find(function(e) { return e['ID_Evento'] === r['ID_Evento']; });
+    if (!ev) return;
+    var dateStr = ev['Data_Evento_Inicio'] || '';
+    var parts = dateStr.split('/');
+    if (parts.length === 3) {
+      var key = MONTHS[parseInt(parts[1]) - 1] + '/' + parts[2].slice(-2);
+      byMonth[key] = (byMonth[key] || 0) + 1;
+    }
+  });
+  var sortedMonths = Object.keys(byMonth).sort(function(a, b) {
+    var toD = function(s) { var p = s.split('/'); return new Date('20' + p[1] + '-' + String(MONTHS.indexOf(p[0]) + 1).padStart(2,'0') + '-01'); };
+    return toD(a) - toD(b);
+  });
+  var cumulative = 0;
+  var cumData = sortedMonths.map(function(m) { cumulative += byMonth[m]; return cumulative; });
+
+  evDestroyChart('evolucao');
+  var ctxEv = document.getElementById('ev-chart-evolucao').getContext('2d');
+  var gradEv = ctxEv.createLinearGradient(0, 0, 0, 160);
+  gradEv.addColorStop(0, 'rgba(249,204,41,0.3)');
+  gradEv.addColorStop(1, 'rgba(249,204,41,0)');
+  _evCharts['evolucao'] = new Chart(ctxEv, {
+    type: 'line',
+    data: {
+      labels: sortedMonths,
+      datasets: [{ label: 'Inscritos', data: cumData, borderColor: '#F9CC29', backgroundColor: gradEv, borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#F9CC29', fill: true, tension: 0.4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: tick, font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: tick, font: { size: 10 } }, grid: { color: grid }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+async function loadEventosData() {
+  document.getElementById('ev-loading').style.display = 'flex';
+  document.getElementById('ev-content').style.display = 'none';
+  document.getElementById('ev-statusDot').style.cssText = 'background:var(--muted);';
+  document.getElementById('ev-statusText').textContent = 'Carregando...';
+
+  try {
+    document.getElementById('ev-loading-msg').textContent = 'Carregando eventos...';
+    var csvEv = await fetch(evCsvUrl(EV_GIDS.eventos), { cache: 'no-cache' }).then(function(r) { return r.text(); });
+    _evData.eventos = evParseCSV(csvEv);
+
+    document.getElementById('ev-loading-msg').textContent = 'Carregando inscritos...';
+    var csvIns = await fetch(evCsvUrl(EV_GIDS.inscritos), { cache: 'no-cache' }).then(function(r) { return r.text(); });
+    _evData.inscritos = evParseCSV(csvIns);
+
+    document.getElementById('ev-loading-msg').textContent = 'Carregando custos...';
+    var csvCust = await fetch(evCsvUrl(EV_GIDS.custos), { cache: 'no-cache' }).then(function(r) { return r.text(); });
+    _evData.custos = evParseCSV(csvCust);
+
+    // Populate filters
+    var filterEv = document.getElementById('ev-filter-evento');
+    filterEv.innerHTML = '<option value="todos">Todos</option>';
+    _evData.eventos.forEach(function(ev) {
+      var opt = document.createElement('option');
+      opt.value = ev['ID_Evento'];
+      opt.textContent = (ev['Cidade'] || ev['ID_Evento']) + ' — ' + (ev['Data_Evento_Inicio'] || '');
+      filterEv.appendChild(opt);
+    });
+
+    var filterReg = document.getElementById('ev-filter-regiao');
+    filterReg.innerHTML = '<option value="todas">Todas</option>';
+    var regioes = [...new Set(_evData.eventos.map(function(e) { return e['Região']; }).filter(Boolean))];
+    regioes.forEach(function(r) {
+      var opt = document.createElement('option');
+      opt.value = r; opt.textContent = r;
+      filterReg.appendChild(opt);
+    });
+
+    renderEventos();
+
+    document.getElementById('ev-loading').style.display = 'none';
+    document.getElementById('ev-content').style.display = 'block';
+    document.getElementById('ev-statusDot').style.cssText = 'background:#EF811A;box-shadow:0 0 8px #EF811A;';
+    document.getElementById('ev-statusText').textContent = 'Dados atualizados';
+
+  } catch (err) {
+    document.getElementById('ev-loading-msg').textContent = 'Erro: ' + err.message;
+    document.getElementById('ev-statusDot').style.cssText = 'background:var(--danger);box-shadow:none;';
+    document.getElementById('ev-statusText').textContent = 'Erro ao carregar';
+    console.error(err);
+  }
+}
+
 function toggleTheme() {
   _isLight = !_isLight;
   document.body.classList.toggle('light', _isLight);
@@ -1466,6 +1890,7 @@ function showPanel(name) {
   // Reload charts if trafego
   if (name === 'trafego') loadData();
   if (name === 'redes') loadSocialData(_currentNetwork);
+  if (name === 'eventos') loadEventosData();
 }
 </script>
 </body>
